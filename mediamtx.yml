@@ -1,4 +1,4 @@
-F###############################################
+###############################################
 # Global settings
 
 # Settings in this section are applied anywhere.
@@ -55,42 +55,29 @@ runOnDisconnect:
 # * internal: credentials are stored in the configuration file
 # * http: an external HTTP URL is contacted to perform authentication
 # * jwt: an external identity server provides authentication through JWTs
-authMethod: jwt
+authMethod: internal
 
 # Internal authentication.
 # Enabled users.
 authInternalUsers:
-  # Default unprivileged user.
-  # Username. 'any' means any user, including anonymous ones.
-- user: any
-  # Password. Not used in case of 'any' user.
-  pass:
-  # IPs or networks allowed to use this user. An empty list means any IP.
-  ips: []
-  # Permissions.
+# Admin API user
+- user: admin
+  pass: strongpassword
   permissions:
-    # Available actions are: publish, read, playback, api, metrics, pprof.
-  - action: publish
-    # Paths can be set to further restrict access to a specific path.
-    # An empty path means any path.
-    # Regular expressions can be used by using a tilde as prefix.
-    path:
-  - action: read
-    path:
-  - action: playback
-    path:
+    - action: api
+    - action: metrics
+    - action: pprof
 
-  # Default administrator.
-  # This allows to use API, metrics and PPROF without authentication,
-  # if the IP is localhost.
-- user: any
-  pass:
-  ips: ['127.0.0.1', '::1']
-  # ips: ['192.168.0.113', '::1']
+# Generic authenticated publishers/readers
+- user: streamer
+  pass: stream123
   permissions:
-  - action: api
-  - action: metrics
-  - action: pprof
+    - action: publish
+      path: ~^.*$
+    - action: read
+      path: ~^.*$
+    - action: playback
+      path: ~^.*$
 
 # HTTP-based authentication.
 # URL called to perform authentication. Every time a user wants
@@ -138,9 +125,7 @@ authHTTPExclude:
 # Users are expected to pass the JWT in the Authorization header or as password.
 # This is the JWKS URL that will be used to pull (once) the public key that allows
 # to validate JWTs.
-# authJWTJWKS: http://192.168.0.113:8000/.well-known/openid-configuration
-# authJWTJWKS: http://192.168.18.28:8000/.well-known/openid-configuration
-authJWTJWKS: http://192.168.18.28:8000/.well-known/jwks.json
+authJWTJWKS:
 # If the JWKS URL has a self-signed or invalid certificate,
 # you can provide the fingerprint of the certificate in order to
 # validate it anyway. It can be obtained by running:
@@ -152,14 +137,9 @@ authJWTClaimKey: mediamtx_permissions
 # Actions to exclude from JWT-based authentication.
 # Format is the same as the one of user permissions.
 authJWTExclude: []
-# Allow passing the JWT through query parameters of HTTP requests (i.e. ?jwt=JWT).
+# allow passing the JWT through query parameters of HTTP requests (i.e. ?jwt=JWT).
 # This is a security risk and will be disabled in the future.
-# RTSP and RTMP always allow JWT in query even if disabled, since there is no alternative.
 authJWTInHTTPQuery: true
-# Expected issuer (iss) claim in the JWT. Leave empty to skip validation.
-authJWTIssuer:
-# Expected audience (aud) claim in the JWT. Leave empty to skip validation.
-authJWTAudience:
 
 ###############################################
 # Global settings -> Control API
@@ -326,7 +306,7 @@ rtmpServerCert: server.crt
 # Enable reading streams with the HLS protocol.
 hls: true
 # Address of the HLS listener.
-hlsAddress: :8888
+hlsAddress: :8800
 # Enable HTTPS on the HLS server.
 # This is required for Low-Latency HLS to function correctly on Apple devices.
 hlsEncryption: false
@@ -346,7 +326,7 @@ hlsAllowOrigins: ['*']
 hlsTrustedProxies: []
 # By default, HLS is generated only when requested by a user.
 # This option allows to generate it always, avoiding the delay between request and generation.
-hlsAlwaysRemux: false
+hlsAlwaysRemux: true
 # Variant of the HLS protocol to use. Available options are:
 # * mpegts - uses MPEG-TS segments, for maximum compatibility.
 # * fmp4 - uses fragmented MP4 segments, more efficient.
@@ -420,8 +400,8 @@ webrtcIPsFromInterfacesList: []
 # Additional hosts or IPs to send to clients.
 webrtcAdditionalHosts: []
 # ICE servers. Needed only when local listeners can't be reached by clients.
-# STUN servers allow to obtain and share the public IP of the server.
-# TURN/TURNS servers force all traffic through them.
+# STUN servers allows to obtain and share the public IP of the server.
+# TURN/TURNS servers forces all traffic through them.
 webrtcICEServers2: []
   # - url: stun:stun.l.google.com:19302
   # if user is "AUTH_SECRET", then authentication is secret based.
@@ -522,7 +502,7 @@ pathDefaults:
   # Default path settings -> Record
 
   # Record streams to disk.
-  record: false
+  record: true
   # Path of recording segments.
   # Extension is added automatically.
   # Available variables are %path (path name), %Y %m %d (year, month, day),
@@ -551,11 +531,6 @@ pathDefaults:
   overridePublisher: true
   # SRT encryption passphrase required to publish to this path.
   srtPublishPassphrase:
-  # Demux MPEG-TS over RTSP into elementary streams.
-  # When enabled, RTSP publishers sending MP2T/90000 will be demultiplexed
-  # and their elementary streams (H.264, H.265, AAC, etc.) exposed as native tracks.
-  # This allows HLS, WebRTC, and other outputs to work transparently with MPEG-TS sources.
-  rtspDemuxMpegts: false
 
   ###############################################
   # Default path settings -> RTSP source (when source is a RTSP or a RTSPS URL)
@@ -790,20 +765,6 @@ pathDefaults:
   #   a regular expression.
   runOnRecordSegmentComplete:
 
-###############################################
-# Path settings
-
-# Settings in "paths" are applied to specific paths, and the map key
-# is the name of the path.
-# Any setting in "pathDefaults" can be overridden here.
-# It's possible to use regular expressions by using a tilde as prefix,
-# for example "~^(test1|test2)$" will match both "test1" and "test2",
-# for example "~^prefix" will match all paths that start with "prefix".
 paths:
-  # example:
-  # my_camera:
-  #   source: rtsp://my_camera
-
-  # Settings under path "all_others" are applied to all paths that
-  # do not match another entry.
-  all_others:
+  all:
+    source: publisher
