@@ -1,0 +1,136 @@
+###############################################
+# M-SQUARE Cloud MediaMTX Config
+# Dynamic camera paths + Django HTTP Auth
+
+logLevel: info
+logDestinations: [stdout]
+logStructured: false
+
+readTimeout: 10s
+writeTimeout: 10s
+writeQueueSize: 512
+udpMaxPayloadSize: 1452
+
+###############################################
+# Authentication through Django
+
+authMethod: http
+
+# Django endpoint that MediaMTX will call for every publish/read request.
+# If Django runs on the same GCP VM:
+authHTTPAddress: http://127.0.0.1:8000/mediamtx/auth/
+
+# Keep admin/control endpoints local-only and excluded from HTTP auth.
+# DO NOT expose :9997 publicly.
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+###############################################
+# Control API
+
+api: true
+apiAddress: 127.0.0.1:9997
+apiEncryption: false
+apiAllowOrigins: ['http://127.0.0.1']
+
+###############################################
+# Metrics / pprof off for now
+
+metrics: false
+pprof: false
+
+###############################################
+# RTSP - best for FFmpeg publish/read testing
+
+rtsp: true
+rtspTransports: [tcp]
+rtspEncryption: "no"
+rtspAddress: :8554
+rtpAddress: :8000
+rtcpAddress: :8001
+rtspAuthMethods: [basic]
+
+###############################################
+# RTMP optional
+
+rtmp: false
+
+###############################################
+# HLS - useful for browser/mobile fallback
+
+hls: true
+hlsAddress: :8888
+hlsEncryption: false
+hlsAllowOrigins: ['*']
+hlsAlwaysRemux: true
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsSegmentMaxSize: 50M
+hlsMuxerCloseAfter: 60s
+
+###############################################
+# WebRTC - low latency browser viewing
+
+webrtc: true
+webrtcAddress: :8889
+webrtcEncryption: false
+webrtcAllowOrigins: ['*']
+
+# For GCP/public internet, put your public IP or domain here.
+# Example:
+# webrtcAdditionalHosts: ['34.123.45.67']
+webrtcAdditionalHosts: ['34.31.108.112']
+
+# Use UDP for better WebRTC performance.
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: ''
+
+# Add STUN for external WebRTC clients.
+webrtcICEServers2:
+  - url: stun:stun.l.google.com:19302
+
+webrtcHandshakeTimeout: 10s
+webrtcTrackGatherTimeout: 2s
+
+###############################################
+# SRT optional
+
+srt: false
+
+###############################################
+# Recording
+
+pathDefaults:
+  source: publisher
+
+  # Allow publisher reconnect/replacement.
+  overridePublisher: true
+
+  # Recording optional. For cloud RAM/storage, keep retention short.
+  record: true
+  recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+  recordPartDuration: 1s
+  recordMaxPartSize: 50M
+  recordSegmentDuration: 15m
+  recordDeleteAfter: 1d
+
+  # Good defaults for dynamic paths.
+  sourceOnDemand: false
+  maxReaders: 0
+
+###############################################
+# Dynamic camera paths
+
+paths:
+  # Allows camera paths like:
+  # cam1_home
+  # cam2_office
+  # cam3_gate
+  # cam99_factory
+  "~^cam[0-9]+_[a-zA-Z0-9_-]+$":
+    source: publisher
