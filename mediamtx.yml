@@ -410,7 +410,7 @@ webrtcLocalUDPAddress: :8189
 webrtcLocalTCPAddress: ''
 # WebRTC clients need to know the IP of the server.
 # Gather IPs from interfaces and send them to clients.
-webrtcIPsFromInterfaces: true
+webrtcIPsFromInterfaces: false
 # Interfaces whose IPs will be sent to clients.
 # An empty value means to use all available interfaces.
 webrtcIPsFromInterfacesList: []
